@@ -5,9 +5,11 @@ import com.alten.employeeservice.dto.EmployeeDto;
 import com.alten.employeeservice.model.Employee;
 import com.alten.employeeservice.model.Task;
 import org.modelmapper.ModelMapper;
+import org.modelmapper.TypeToken;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.lang.reflect.Type;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
@@ -117,12 +119,7 @@ public class EmployeeBusinessService implements IEmployeeBusinessService {
         employeeDataService.delete(employeeId);
     }
 
-//    @Override
-//    public List<EmployeeDto> getAvailableEmployeesByTeamAndTask(int teamId, TaskDto theTask) {
-//
-//        return teamDataService.findById(teamId).getEmployees().stream().filter(employee -> employeeAvailable(employee, LocalDate.parse(theTask.getExpectedStartTime()),
-//                LocalDate.parse(theTask.getExpectedEndTime()))).map(employee -> modelMapper.map(employee, EmployeeDto.class)).collect(Collectors.toList());
-//    }
+
 
     @Override
     public String getAvailabilityByEmployee(int employeeId, String start_date, String end_date) {
@@ -131,6 +128,18 @@ public class EmployeeBusinessService implements IEmployeeBusinessService {
         LocalDate start = LocalDate.parse(start_date), end = LocalDate.parse(end_date);
         return printEmployeeScheduling(employee, ChronoUnit.DAYS.between(start, end) + 1, start, end);
 
+    }
+
+    @Override
+    public List<EmployeeDto> saveAll(List<? extends EmployeeDto> employeesDto) {
+        List<Employee> employees = modelMapper.map(employeesDto,new TypeToken<List<Employee>>(){}.getType());
+        employees.parallelStream().forEach(e->
+        {
+            if(!e.getPassword().startsWith("{noop}"))
+            e.setPassword("{noop}" + e.getPassword());
+        });
+        List<EmployeeDto> empDtoList = modelMapper.map(employeeDataService.saveAll(employees),new TypeToken<List<EmployeeDto>>(){}.getType());
+        return empDtoList;
     }
 
 }

@@ -1,12 +1,11 @@
 package com.alten.employeeservice.controller
 
-import io.swagger.annotations.Api
-import io.swagger.annotations.ApiOperation
-import io.swagger.annotations.ApiParam
 //import org.springframework.security.access.prepost.PreAuthorize
 import com.alten.employeeservice.dto.AvailabilityByEmployeeInputDto
 import com.alten.employeeservice.dto.EmployeeDto
-import com.alten.employeeservice.dto.TaskDto
+import io.swagger.annotations.Api
+import io.swagger.annotations.ApiOperation
+import io.swagger.annotations.ApiParam
 import org.springframework.web.bind.annotation.*
 import javax.servlet.http.HttpServletRequest
 
@@ -34,6 +33,12 @@ interface IEmployeeController {
             @ApiParam(value = "Employee object store in database table", required = true)
             @RequestBody theEmployee: EmployeeDto?): EmployeeDto?
 
+    @ApiOperation(value = "Add a list of employees, allowed only to ADMIN employees", response = MutableList::class)
+    //    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PostMapping(consumes = ["application/json"], produces = ["application/json"])
+    fun saveAll(@ApiParam(value = "List of employees to save", required = true)
+              @RequestBody employees: List<EmployeeDto?>?): List<EmployeeDto?>?
+
     @ApiOperation(value = "Update an employee, allowed only to the Admin or the interested Employee", response = EmployeeDto::class)
 //    @PreAuthorize("@securityDataService.isOwner(principal.id,#theEmployee.getId()) or hasRole('ROLE_ADMIN')")
     @PutMapping(consumes = ["application/json"], produces = ["application/json"])
@@ -47,14 +52,6 @@ interface IEmployeeController {
     fun deleteEmployee(
             @ApiParam(value = "Employee Id from which employee object will delete from database table", required = true)
             @PathVariable("employeeId") employeeId: String?, request: HttpServletRequest?): String?
-
-//    @ApiOperation(value = "View a list of available employees in a Team for a Task", response = MutableList::class)
-//    @PostMapping(value = ["/employeesByTeamAndTask/{teamId}"], consumes = ["application/json"], produces = ["application/json"])
-//    fun getAvailableEmployeesByTeamAndTask(
-//        @ApiParam(value = "Team id object store in database table", required = true)
-//        @PathVariable("teamId") teamId: Int,
-//        @ApiParam(value = "Task object store in database table", required = true)
-//        @RequestBody theTask: TaskDto?): List<EmployeeDto?>?
 
     @ApiOperation(value = "View availability and tasks for an Employee", response = MutableList::class)
     @PostMapping(value = ["/availability"], consumes = ["application/json"], produces = ["application/json"])

@@ -35,6 +35,10 @@ open class EmployeeController(@Autowired private val employeeService: IEmployeeB
         return employeeService!!.save(theEmployee)
     }
 
+    override fun saveAll(employees: List<EmployeeDto?>?): List<EmployeeDto?>? {
+        return employeeService!!.saveAll(employees)
+    }
+
     override fun updateEmployee(@RequestBody theEmployee: EmployeeDto?): EmployeeDto? {
         employeeService!!.update(theEmployee)
         return theEmployee
@@ -55,9 +59,6 @@ open class EmployeeController(@Autowired private val employeeService: IEmployeeB
            // "Deleted employee with id: $employeeId"
     }
 
-//    override fun getAvailableEmployeesByTeamAndTask(teamId: Int, theTask: TaskDto?): List<EmployeeDto?>? {
-//        return employeeService!!.getAvailableEmployeesByTeamAndTask(teamId, theTask)
-//    }
 
     override fun getAvailabilityByEmployee(input: AvailabilityByEmployeeInputDto?): String? {
         return employeeService!!.getAvailabilityByEmployee(input!!.employee_id, input.start, input.end)
