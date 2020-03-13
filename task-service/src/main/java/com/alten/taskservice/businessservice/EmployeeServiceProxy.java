@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
-@FeignClient(name = "employee-service", url="localhost:8100")
+@FeignClient(name = "employee-service", url="employee-service:8100")
 public interface EmployeeServiceProxy {
 
     @GetMapping("/employees/{employeeId}")

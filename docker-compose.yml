@@ -1,0 +1,37 @@
+version: "2"
+services:  
+  task-manager-db:
+    image: task-manager-db:latest
+    ports: 
+      - 8080:8080
+  employee-service:
+    image: employee-service:latest
+    ports: 
+      - 8100:8100
+    links:
+      - task-manager-db
+  task-service:
+    image: task-service:latest
+    ports: 
+      - 8200:8200
+    links:
+      - task-manager-db
+      - employee-service
+  team-service:
+    image: team-service:latest
+    ports: 
+      - 8300:8300
+    links:
+      - task-manager-db
+      - employee-service
+      - task-service
+  spring-boot-camel:
+    image: spring-boot-camel:latest
+    ports: 
+      - 8400:8400
+    links:
+      - employee-service
+      - task-service
+      - team-service
+
+  

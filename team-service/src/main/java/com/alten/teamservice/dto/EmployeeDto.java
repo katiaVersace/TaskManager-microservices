@@ -1,4 +1,4 @@
-package com.alten.employeeservice.dto;
+package com.alten.teamservice.dto;
 
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;

@@ -1,9 +1,11 @@
-package com.alten.springboot.taskmanager.controller
+package com.alten.teamservice.controller
 
-import com.alten.springboot.taskmanager.businessservice.ITeamBusinessService
-import com.alten.springboot.taskmanager.dto.RandomPopulationInputDto
-import com.alten.springboot.taskmanager.dto.TaskDto
-import com.alten.springboot.taskmanager.dto.TeamDto
+import com.alten.springboot.taskmanager.controller.ITeamController
+import com.alten.teamservice.businessservice.ITeamBusinessService
+import com.alten.teamservice.dto.EmployeeDto
+import com.alten.teamservice.dto.RandomPopulationInputDto
+import com.alten.teamservice.dto.TaskDto
+import com.alten.teamservice.dto.TeamDto
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
 
@@ -41,5 +43,9 @@ open class TeamController(@Autowired private val teamService: ITeamBusinessServi
 
     override fun assignTaskToTeam(teamId: Int, task: TaskDto?): TaskDto? {
         return teamService!!.tryAssignTaskToTeam(task!!.expectedStartTime, task.expectedEndTime, teamId, task)
+    }
+
+    override fun getAvailableEmployeesByTeamAndTask(teamId: Int, theTask: TaskDto?): List<EmployeeDto?>? {
+        return teamService!!.getAvailableEmployeesByTeamAndTask(teamId, theTask)
     }
 }

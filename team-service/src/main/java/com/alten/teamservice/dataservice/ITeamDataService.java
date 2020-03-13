@@ -1,8 +1,9 @@
-package com.alten.springboot.taskmanager.dataservice;
+package com.alten.teamservice.dataservice;
+
+
+import com.alten.teamservice.model.Team;
 
 import java.util.List;
-
-import com.alten.springboot.taskmanager.model.Team;
 
 public interface ITeamDataService {
 

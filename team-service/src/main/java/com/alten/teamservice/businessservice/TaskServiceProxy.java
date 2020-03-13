@@ -1,14 +1,18 @@
 package com.alten.teamservice.businessservice;
 
-import com.alten.teamservice.dto.EmployeeDto;
+import com.alten.teamservice.dto.TaskDto;
 import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 
 import java.util.List;
 
-@FeignClient(name = "employee-service", url="localhost:8100")
-public interface EmployeeServiceProxy {
+@FeignClient(name = "task-service", url = "task-service:8200")
+public interface TaskServiceProxy {
 
-    @PostMapping("/employees")
-    public List<EmployeeDto> saveAll(@RequestBody List<EmployeeDto> employees);
+    @PostMapping("/tasks/saveAll")
+    public List<TaskDto> saveAll(@RequestBody List<TaskDto> tasks);
+
+    @PostMapping("/tasks")
+    public TaskDto save(@RequestBody TaskDto task);
 }

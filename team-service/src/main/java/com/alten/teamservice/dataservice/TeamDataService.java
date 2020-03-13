@@ -1,16 +1,13 @@
-package com.alten.springboot.taskmanager.dataservice;
+package com.alten.teamservice.dataservice;
 
-import java.util.List;
-import java.util.Optional;
-
-import javax.transaction.Transactional;
-
-import com.alten.springboot.taskmanager.model.Employee;
+import com.alten.teamservice.dao.TeamRepository;
+import com.alten.teamservice.model.Team;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.alten.springboot.taskmanager.dao.TeamRepository;
-import com.alten.springboot.taskmanager.model.Team;
+import javax.transaction.Transactional;
+import java.util.List;
+import java.util.Optional;
 
 @Service
 public class TeamDataService implements ITeamDataService {

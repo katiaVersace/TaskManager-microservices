@@ -1,15 +1,16 @@
-package com.alten.springboot.taskmanager.businessservice;
+package com.alten.teamservice.businessservice;
 
-import com.alten.springboot.taskmanager.dataservice.IEmployeeDataService;
-import com.alten.springboot.taskmanager.dataservice.ITaskDataService;
-import com.alten.springboot.taskmanager.dataservice.ITeamDataService;
-import com.alten.springboot.taskmanager.dto.TaskDto;
-import com.alten.springboot.taskmanager.dto.TeamDto;
-import com.alten.springboot.taskmanager.model.Employee;
-import com.alten.springboot.taskmanager.model.Task;
-import com.alten.springboot.taskmanager.model.Team;
-import org.apache.commons.lang3.RandomStringUtils;
+
+import com.alten.teamservice.dataservice.ITeamDataService;
+import com.alten.teamservice.dto.EmployeeDto;
+import com.alten.teamservice.dto.TaskDto;
+import com.alten.teamservice.dto.TeamDto;
+import com.alten.teamservice.model.Employee;
+import com.alten.teamservice.model.Task;
+import com.alten.teamservice.model.Team;
+import org.apache.commons.lang.RandomStringUtils;
 import org.modelmapper.ModelMapper;
+import org.modelmapper.TypeToken;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -34,10 +35,10 @@ public class TeamBusinessService implements ITeamBusinessService {
     private ITeamDataService teamDataService;
 
     @Autowired
-    private IEmployeeDataService employeeDataService;
+    private EmployeeServiceProxy employeeServiceProxy;
 
     @Autowired
-    private ITaskDataService taskDataService;
+    private TaskServiceProxy taskServiceProxy;
 
     @Autowired
     private ModelMapper modelMapper;
@@ -108,7 +109,7 @@ public class TeamBusinessService implements ITeamBusinessService {
         List<Employee> employees = IntStream.range(0, employees_size).parallel()
                 .mapToObj(i -> {
                     String generatedString = RandomStringUtils.randomAlphabetic(NRANDOMCHARS).toUpperCase();
-                    Employee employee = new Employee("EMP_" + generatedString, generatedString, "Name_" + generatedString,
+                    Employee employee = new Employee("EMP_" + generatedString, "{noop}"+generatedString, "Name_" + generatedString,
                             "LastName_" + generatedString, generatedString + "@alten.it", false);
                     return employee;
                 }).collect(Collectors.toList());
@@ -145,7 +146,7 @@ public class TeamBusinessService implements ITeamBusinessService {
                     LocalDate endMinusDuration = end.plusDays(-duration);
                     LocalDate expectedStartTime = between(start, endMinusDuration);
                     LocalDate expectedEndTime = expectedStartTime.plusDays(duration - 1);
-                    Task task = new Task(generatedString, expectedStartTime, null, expectedEndTime, null);
+                    Task task = new Task(generatedString, expectedStartTime, expectedStartTime, expectedEndTime, expectedEndTime);
 
                     return task;
                 }).collect(Collectors.toList());
@@ -166,18 +167,30 @@ public class TeamBusinessService implements ITeamBusinessService {
         });
 
         //PERSIST
-        employeeDataService.saveAll(employees);
+//        List<EmployeeDto> employeesDto = modelMapper.map(employees, new TypeToken<List<EmployeeDto>>() {
+//        }.getType());
+//        employeeServiceProxy.saveAll(employeesDto);
         teamDataService.saveAll(teams);
-        taskDataService.saveAll(tasks);
+        List<TaskDto> tasksDto = modelMapper.map(tasks, new TypeToken<List<TaskDto>>() {
+        }.getType());
+
+        taskServiceProxy.saveAll(tasksDto);
 
         //OUTPUT
         StringBuilder sb = new StringBuilder();
         sb.append("Scheduling:\n" + printDays(start, days_max) + "\n");
-        sb.append(employees.stream().map(e -> EmployeeBusinessService.printEmployeeScheduling(e, days_max, start, end)).collect(Collectors.joining("\n")));
+        sb.append(employees.stream().map(e -> printEmployeeScheduling(e, days_max, start, end)).collect(Collectors.joining("\n")));
         sb.append("\n" + printFreeEmployees(start, end, days_max, employees));
         System.out.println(sb.toString());
 
         return sb.toString();
+    }
+
+    @Override
+    public List<EmployeeDto> getAvailableEmployeesByTeamAndTask(int teamId, TaskDto theTask) {
+
+        return teamDataService.findById(teamId).getEmployees().stream().filter(employee -> employeeAvailable(employee, LocalDate.parse(theTask.getExpectedStartTime()),
+                LocalDate.parse(theTask.getExpectedEndTime()))).map(employee -> modelMapper.map(employee, EmployeeDto.class)).collect(Collectors.toList());
     }
 
     @Override
@@ -187,7 +200,7 @@ public class TeamBusinessService implements ITeamBusinessService {
         Team team = teamDataService.findById(team_id);
         LocalDate start = LocalDate.parse(start_date), end = LocalDate.parse(end_date);
 
-        if (!TaskBusinessService.checkDate(task))
+        if (!checkDate(task))
             return null;
 
         // sort employees in  base alla loro disponibilità nel periodo del task
@@ -205,18 +218,17 @@ public class TeamBusinessService implements ITeamBusinessService {
 
         } else {
 
+
             //PERSIST
-            theTaskDto = visitedTasks.stream().filter(t -> oldAssignments.get(t) == null).map(t -> {
-                t = taskDataService.save(t);
-                return modelMapper.map(t, TaskDto.class);
-            })
+            List<TaskDto> visitedTasksDto = modelMapper.map(visitedTasks, new TypeToken<List<TaskDto>>() {
+            }.getType());
+            theTaskDto = taskServiceProxy.saveAll(visitedTasksDto).stream().filter(t -> oldAssignments.get(t) == null).map(t->modelMapper.map(t, TaskDto.class))
                     .findFirst().orElse(null);
-
-
-            taskDataService.saveAll(visitedTasks);
             List<Employee> employeesToSave = new ArrayList<>(visitedTasks.stream().map(t -> t.getEmployee()).collect(Collectors.toList()));
             employeesToSave.addAll(oldAssignments.entrySet().stream().map(entry -> entry.getValue()).filter(e -> e != null).collect(Collectors.toList()));
-            employeeDataService.saveAll(employeesToSave);
+            List<EmployeeDto> employeesDto = modelMapper.map(employeesToSave, new TypeToken<List<EmployeeDto>>() {
+            }.getType());
+            employeeServiceProxy.saveAll(employeesDto);
 
             //OUTPUT
             System.out.println("Solution: ");
@@ -226,7 +238,7 @@ public class TeamBusinessService implements ITeamBusinessService {
             LocalDate final_start = start.minusDays(10), final_end = end.plusDays(10);
             long final_days_max = (ChronoUnit.DAYS.between(final_start, final_end)) + 1;
             System.out.println("New scheduling:\n" + printDays(final_start, final_days_max));
-            team.getEmployees().stream().map(e -> EmployeeBusinessService.printEmployeeScheduling(e, final_days_max, final_start, final_end)).forEach(System.out::println);
+            team.getEmployees().stream().map(e -> printEmployeeScheduling(e, final_days_max, final_start, final_end)).forEach(System.out::println);
             System.out.println(printFreeEmployees(final_start, final_end, final_days_max, new ArrayList<>(team.getEmployees())));
 
             return theTaskDto;
@@ -259,7 +271,7 @@ public class TeamBusinessService implements ITeamBusinessService {
 
             customThreadPool.submit(() ->
 
-                    employees.parallelStream().filter(employee -> EmployeeBusinessService.employeeAvailable(employee, task.getExpectedStartTime(), task.getExpectedEndTime()))
+                    employees.parallelStream().filter(employee -> employeeAvailable(employee, task.getExpectedStartTime(), task.getExpectedEndTime()))
                             .findFirst().ifPresent(employee -> {
                         assignTaskToEmployee(task, employee);
                         scheduled.set(true);
@@ -289,7 +301,7 @@ public class TeamBusinessService implements ITeamBusinessService {
     public LocalDate getAvailability(Employee employee, LocalDate start, LocalDate end) {
 
         return IntStream.range(0, (int) (ChronoUnit.DAYS.between(start, end) + 1)).parallel()
-                .filter(i -> EmployeeBusinessService.employeeAvailable(employee, start.plusDays(i), start.plusDays(i)))
+                .filter(i -> employeeAvailable(employee, start.plusDays(i), start.plusDays(i)))
                 .mapToObj(i -> start.plusDays(i))
                 .findFirst().orElse(null);
 
@@ -313,7 +325,7 @@ public class TeamBusinessService implements ITeamBusinessService {
         try {
 
             customThreadPool.submit(() ->
-                    team.parallelStream().filter(employee -> employee != task.getEmployee() && EmployeeBusinessService.employeeAvailable(employee, task.getExpectedStartTime(), task.getExpectedEndTime()))
+                    team.parallelStream().filter(employee -> employee != task.getEmployee() && employeeAvailable(employee, task.getExpectedStartTime(), task.getExpectedEndTime()))
                             .findFirst().ifPresent(newEmployee -> {
                         assignTaskToEmployee(task, newEmployee);
                         oldAssignments.put(task, oldEmployee);
@@ -389,10 +401,10 @@ public class TeamBusinessService implements ITeamBusinessService {
     }
 
     private List<Task> getTasksInPeriod(Employee employee, LocalDate start, LocalDate end) {
-        return employee.getTasks().parallelStream().filter(t -> EmployeeBusinessService.betweenTwoDate(start, t.getExpectedStartTime(), t.getExpectedEndTime())
-                || EmployeeBusinessService.betweenTwoDate(end, t.getExpectedStartTime(), t.getExpectedEndTime())
-                || EmployeeBusinessService.betweenTwoDate(t.getExpectedStartTime(), start, end)
-                || EmployeeBusinessService.betweenTwoDate(t.getExpectedEndTime(), start, end)).collect(Collectors.toList());
+        return employee.getTasks().parallelStream().filter(t -> betweenTwoDate(start, t.getExpectedStartTime(), t.getExpectedEndTime())
+                || betweenTwoDate(end, t.getExpectedStartTime(), t.getExpectedEndTime())
+                || betweenTwoDate(t.getExpectedStartTime(), start, end)
+                || betweenTwoDate(t.getExpectedEndTime(), start, end)).collect(Collectors.toList());
     }
 
     public boolean checkNoSolution(LocalDate start, LocalDate end, List<Employee> employees) {
@@ -400,7 +412,7 @@ public class TeamBusinessService implements ITeamBusinessService {
         int day_problem = IntStream.range(0, (int) (ChronoUnit.DAYS.between(start, end) + 1)).parallel()
                 .filter(i ->
                         //non è disponibile un impiegato in quel giorno
-                        (!employees.parallelStream().filter(employee -> EmployeeBusinessService.employeeAvailable(employee, start.plusDays(i), start.plusDays(i))).findFirst().isPresent())
+                        (!employees.parallelStream().filter(employee -> employeeAvailable(employee, start.plusDays(i), start.plusDays(i))).findFirst().isPresent())
 
                 ).findFirst().orElse(-1);
 
@@ -419,7 +431,7 @@ public class TeamBusinessService implements ITeamBusinessService {
         IntStream.range(0, (int) (ChronoUnit.DAYS.between(start, end) + 1)).parallel()
                 .forEach(i -> {
                     //parallel potrebbe sporcare i dati
-                    employees.stream().filter(employee -> EmployeeBusinessService.employeeAvailable(employee, start.plusDays(i), start.plusDays(i))).forEach((e) -> freeEmployees[i]++);
+                    employees.stream().filter(employee -> employeeAvailable(employee, start.plusDays(i), start.plusDays(i))).forEach((e) -> freeEmployees[i]++);
                 });
 
         StringBuilder sb = new StringBuilder();
@@ -432,6 +444,56 @@ public class TeamBusinessService implements ITeamBusinessService {
 
         sb.append("Free Employees");
         return sb.toString();
+    }
+
+    private String printEmployeeScheduling(Employee employee, long schedule_size, LocalDate start, LocalDate end) {
+
+        String[] schedule = new String[(int) schedule_size];
+        Arrays.fill(schedule, "__");
+
+        employee.getTasks().stream().forEach(task -> {
+            LocalDate taskStartDate = task.getExpectedStartTime(), taskEndDate = task.getExpectedEndTime();
+            // check on task start and end because a task can end over the end of the period specified or start before
+            taskStartDate = (taskStartDate.isBefore(start)) ? start : taskStartDate;
+            taskEndDate = (taskEndDate.isAfter(end)) ? end : taskEndDate;
+            long taskStart = ChronoUnit.DAYS.between(start, taskStartDate), taskDuration = ChronoUnit.DAYS.between(taskStartDate, taskEndDate) + 1;
+            String stringToPrint = task.getDescription();
+            stringToPrint = (stringToPrint.length() < 2) ? "0" + stringToPrint : stringToPrint;
+            String finalStringToPrint = stringToPrint;
+            IntStream.range((int) taskStart, (int) (taskStart + taskDuration))
+                    .forEach(i -> schedule[i] = finalStringToPrint);
+        });
+
+        StringBuilder sb = new StringBuilder();
+        Stream.of(schedule).forEach(availability -> sb.append(availability + "  "));
+        sb.append(employee.getUserName());
+        return sb.toString();
+
+    }
+
+    private boolean checkDate(Task theTask) {
+        LocalDate today = LocalDate.now();
+        //se exTaskStart è < oggi oppure exTaskStart > exTaskEnd oppure ((realTaskStart!= null o realTaskEnd !=null) && (realTaskStart<oggi oppure realTaskStart>realTaskEnd)) le date non sono valide
+        return !(theTask.getExpectedStartTime().isBefore(today) || theTask.getExpectedStartTime().isAfter(theTask.getExpectedEndTime()) ||
+                ((theTask.getRealStartTime() != null || theTask.getRealEndTime() != null) && (theTask.getRealStartTime().isBefore(today) || theTask.getRealStartTime().isAfter(theTask.getRealEndTime()))));
+    }
+
+    private boolean betweenTwoDate(LocalDate toCheck, LocalDate start, LocalDate end) {
+
+        return (toCheck.isAfter(start) && toCheck.isBefore(end)) || toCheck.equals(start)
+                || toCheck.equals(end);
+    }
+
+    private boolean employeeAvailable(Employee e, LocalDate startTask, LocalDate endTask) {
+
+        Optional<Task> result = e.getTasks().stream().filter(t -> betweenTwoDate(startTask, t.getExpectedStartTime(), t.getExpectedEndTime())
+                || betweenTwoDate(endTask, t.getExpectedStartTime(), t.getExpectedEndTime())
+                || betweenTwoDate(t.getExpectedStartTime(), startTask, endTask)
+                || betweenTwoDate(t.getExpectedEndTime(), startTask, endTask))
+                .findFirst();
+
+        return !result.isPresent();
+
     }
 
 }

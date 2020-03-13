@@ -25,6 +25,11 @@ interface ITaskController {
     @PostMapping(consumes = ["application/json"], produces = ["application/json"])
     fun addTask(@ApiParam(value = "Task object store in database table", required = true) @RequestBody theTask: TaskDto?): TaskDto?
 
+    @ApiOperation(value = "Add a list of tasks, allowed only to ADMIN employees", response = MutableList::class)
+//    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PostMapping(value = ["/saveAll"],consumes = ["application/json"], produces = ["application/json"])
+    fun saveAll(@ApiParam(value = "Task objects store in database table", required = true) @RequestBody tasks: List<TaskDto?>): List<TaskDto?>
+
     @ApiOperation(value = "Put a task, allowed only to ADMIN employees", response = TaskDto::class)
 //    @PreAuthorize("hasRole('ROLE_ADMIN')")
     @PutMapping(consumes = ["application/json"], produces = ["application/json"])

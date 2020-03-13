@@ -7,6 +7,7 @@ import com.alten.taskservice.dto.TaskDto;
 import com.alten.taskservice.model.Employee;
 import com.alten.taskservice.model.Task;
 import org.modelmapper.ModelMapper;
+import org.modelmapper.TypeToken;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -56,7 +57,7 @@ public class TaskBusinessService implements ITaskBusinessService {
             taskDto = modelMapper.map(taskDataService.save(task), TaskDto.class);
 
         }
-
+System.out.println("Prova");
         return taskDto;
     }
 
@@ -97,12 +98,23 @@ public class TaskBusinessService implements ITaskBusinessService {
         return taskDataService.findByEmployeeId(employeeId).stream().map(task -> modelMapper.map(task, TaskDto.class)).collect(Collectors.toList());
     }
 
-    private void assignTaskToEmployee(Task task, EmployeeDto employee, List<Task>tasks) {
+    @Override
+    public List<TaskDto> saveAll(List<? extends TaskDto> tasksDto) {
+        List<TaskDto> saved = tasksDto.parallelStream().map(t->save(t)).collect(Collectors.toList());
+//        List<Task> tasks = modelMapper.map(tasksDto, new TypeToken<List<Task>>() {
+//        }.getType());
+//        List<TaskDto> taskDtoList = modelMapper.map(taskDataService.saveAll(tasks), new TypeToken<List<TaskDto>>() {
+//        }.getType());
+//        return taskDtoList;
+        return saved;
+    }
+
+    private void assignTaskToEmployee(Task task, EmployeeDto employee, List<Task> tasks) {
         if (task.getEmployee() != null) {
             task.getEmployee().getTasks().remove(task);
             if (task.getEmployee().getTasks().size() < 5 && task.getEmployee().isTopEmployee()) {
                 task.getEmployee().setTopEmployee(false);
-                employeeServiceProxy.update(modelMapper.map( task.getEmployee(), EmployeeDto.class));
+                employeeServiceProxy.update(modelMapper.map(task.getEmployee(), EmployeeDto.class));
             }
         }
         if (employee != null) {
@@ -111,8 +123,8 @@ public class TaskBusinessService implements ITaskBusinessService {
                 employee.setTopEmployee(true);
                 employeeServiceProxy.update(employee);
             }
-            task.setEmployee( modelMapper.map(employee, Employee.class));
-        }else  task.setEmployee(null);
+            task.setEmployee(modelMapper.map(employee, Employee.class));
+        } else task.setEmployee(null);
 
     }
 

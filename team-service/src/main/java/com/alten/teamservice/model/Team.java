@@ -1,4 +1,4 @@
-package com.alten.employeeservice.model;
+package com.alten.teamservice.model;
 
 import javax.persistence.*;
 import java.util.HashSet;
@@ -16,7 +16,8 @@ public class Team {
     @Column(name = "name", nullable = false)
     private String name;
 
-    @ManyToMany(fetch = FetchType.EAGER)
+    @ManyToMany(fetch = FetchType.EAGER ,cascade = CascadeType.PERSIST)
+
     @JoinTable(name = "employees_teams", joinColumns = {@JoinColumn(name = "team_id")}, inverseJoinColumns = {
             @JoinColumn(name = "employee_id")}, uniqueConstraints = @UniqueConstraint(columnNames = {"team_id",
             "employee_id"}))

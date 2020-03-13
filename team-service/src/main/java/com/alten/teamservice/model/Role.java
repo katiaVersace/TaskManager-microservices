@@ -1,4 +1,4 @@
-package com.alten.employeeservice.model;
+package com.alten.teamservice.model;
 
 import javax.persistence.*;
 

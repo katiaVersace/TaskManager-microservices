@@ -1,9 +1,8 @@
-package com.alten.springboot.taskmanager.dao;
+package com.alten.teamservice.dao;
 
 
+import com.alten.teamservice.model.Team;
 import org.springframework.data.jpa.repository.JpaRepository;
-
-import com.alten.springboot.taskmanager.model.Team;
 
 public interface TeamRepository extends JpaRepository<Team, Integer> {
 }

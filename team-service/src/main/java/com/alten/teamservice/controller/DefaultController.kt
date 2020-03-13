@@ -1,4 +1,4 @@
-package com.alten.employeeservice.controller
+package com.alten.teamservice.controller
 
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RestController

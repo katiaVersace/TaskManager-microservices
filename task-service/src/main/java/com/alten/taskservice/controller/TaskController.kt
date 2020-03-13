@@ -24,6 +24,10 @@ open class TaskController(@Autowired private val taskService: ITaskBusinessServi
         return taskService!!.save(theTask)
     }
 
+    override fun saveAll(tasks: List<TaskDto?>): List<TaskDto?> {
+        return taskService!!.saveAll(tasks)
+    }
+
     override fun updateTaskAdmin(@RequestBody theTask: TaskDto?): TaskDto? {
         taskService!!.update(theTask)
         return theTask
